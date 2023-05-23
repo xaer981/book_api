@@ -1,46 +1,29 @@
-import re
+from typing import Annotated
 
-from bs4 import BeautifulSoup
+from fastapi import Body, FastAPI, Query
+from pydantic import BaseModel
 
-# from text2png import text2png
+from book_process import get_search_results, process_results_list
 
-
-class Engine:
-    def __init__(self) -> None:
-        self.__books = [f'book/OPS/ch1-{i}.xhtml' for i in range(1, 30)]
-
-    def get_soup(self, book: str) -> BeautifulSoup:
-        """
-        Принимает string с расположением книги.
-        Возвращает BeatifulSoup из содержания этой книги.
-        """
-        with open(book, 'r', encoding='utf-8') as file:
-            return BeautifulSoup(file, 'xml')
-
-    def search_text(self, query: str, scope: str = 'p') -> str | None:
-        """
-        Принимает на вход поисковый запрос(query)
-        и область(scope) возвращаемого текста(необязательно).
-        Если scope не задан, то будет возвращено содержание тэга <p>,
-        где найден запрос.
-        Можно задать scope 'body',
-        чтобы получить всё содержание интересующей главы (тэга body).
-        """
-        for book in self.__books:
-            soup = self.get_soup(book)
-            if query:
-                result = (soup.find(string=re.compile(query, re.I)))
-                if result:
-                    return result.find_parent(scope).get_text()
-        return None
+app = FastAPI()
 
 
-engine = Engine()
-query = None
-while query != 'stop':
-    query = input('Введите запрос:\n')
-    print(engine.search_text(query))
+class ResultOut(BaseModel):
+    book_name: str
+    book_author: str
+    results: list[set]
+    page: int
+    size: int
+    total: int
 
 
-# Перейти от find к find_all() ИЛИ ИСПОЛЬЗОВАТЬ FIND_NEXT, FIND_PREVIOUS!!!
-# Чтобы можно было переходить к следующему/предидущему запросу
+@app.get('/', response_model=ResultOut | str)
+def search_book(query: Annotated[str, Body(embed=True)],
+                page: int = Query(ge=0, default=0),
+                size: int = Query(ge=1, le=100, default=5)) -> dict | str:
+
+    book_data, results = get_search_results(query)
+    if results:
+        return process_results_list(book_data, results, page, size)
+
+    return 'Не найдено'
