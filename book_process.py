@@ -18,28 +18,23 @@ def get_search_results(query: str):
         result = soup.find_all(name='p', string=re.compile(query, re.I))
         if result:
             results.append(result)
+    results = [i for sub_list in results for i in sub_list]
 
-    return book_data, [i for sub_list in results for i in sub_list]
+    return book_data, dict([(num, result)
+                            for num, result
+                            in enumerate(results)])
 
 
-def process_results_list(book_data: dict, results: list, page: int, size: int):
+def process_results_list(book_data: dict, results: dict, page: int, size: int):
     offset_min = page * size
     offset_max = (page + 1) * size
-    results = [(num, result.get_text())
-               for num, result
-               in enumerate(results)]
+    results = dict([(num, result.get_text())
+                    for num, result
+                    in results.items()])
 
     return {"book_name": book_data['name'],
             "book_author": book_data['author'],
-            "results": results[offset_min:offset_max],
+            "results": dict(list(results.items())[offset_min:offset_max]),
             "page": page,
             "size": size,
             "total": ceil(len(results) / size) - 1}
-
-
-if __name__ == '__main__':
-    data, res = get_search_results('дочь')
-    final = process_results_list(data, res, 0, 5)
-
-    resules = final['results']
-    print(resules)
