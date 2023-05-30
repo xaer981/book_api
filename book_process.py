@@ -1,15 +1,25 @@
 import re
 from math import ceil
+from os import listdir
 
 import ebooklib
 from bs4 import BeautifulSoup
 from ebooklib import epub
+from fastapi import HTTPException, status
+
+from messages import NOT_FOUND_BOOK_NO
 
 
-def get_search_results(query: str):
+def get_search_results(query: str, book_no: int):
     results = []
-    book = epub.read_epub('book/latta.epub')
-    book_data = {'name': book.get_metadata('DC', 'title')[0][0],
+    books_list = listdir("book")
+    if book_no > (len(books_list) - 1):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=NOT_FOUND_BOOK_NO.format(book_no=book_no))
+
+    book = epub.read_epub(f'book/{books_list[book_no]}')
+    book_data = {'no': book_no,
+                 'name': book.get_metadata('DC', 'title')[0][0],
                  'author': book.get_metadata('DC', 'creator')[0][0]}
     strings = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
     strings = [string.get_content().decode('utf-8') for string in strings]
@@ -32,7 +42,8 @@ def process_results_list(book_data: dict, results: dict, page: int, size: int):
                     for num, result
                     in results.items()])
 
-    return {"book_name": book_data['name'],
+    return {"book_no": book_data['no'],
+            "book_name": book_data['name'],
             "book_author": book_data['author'],
             "results": dict(list(results.items())[offset_min:offset_max]),
             "page": page,
