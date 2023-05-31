@@ -1,5 +1,4 @@
 import re
-from math import ceil
 from os import listdir
 
 import ebooklib
@@ -8,16 +7,65 @@ from ebooklib import epub
 from fastapi import HTTPException, status
 
 from messages import NOT_FOUND_BOOK_NO
+from utils import paginator
 
 
-def get_search_results(query: str, book_no: int):
+def get_book_list(page: int, limit: int) -> dict:
+    """
+    Returns all existing books.
+
+    Args:
+        page (int): requested page.
+        limit (int): limit for results per page.
+
+    Returns:
+        dict: all books.
+    """
+    files = listdir('book')
+    book_list = {}
+    for num, file in enumerate(files):
+        book = epub.read_epub(f'book/{file}')
+        name = book.get_metadata('DC', 'title')[0][0]
+        author = book.get_metadata('DC', 'creator')[0][0]
+
+        book_list[num] = f'`{name}`, {author}'
+
+    total_pages, paginated_results = paginator(book_list, page, limit)
+
+    return {'books': paginated_results,
+            'page': page,
+            'limit': limit,
+            'total_pages': total_pages}
+
+
+def get_book(book_no: int) -> dict:
+    """Currently doesn't work fine. Need to think."""
+    books_names, book_no = get_books_names_and_no(book_no)
+    book = epub.read_epub(f'book/{books_names[book_no]}')
+    book_nav = book.get_items_of_type(ebooklib.ITEM_NAVIGATION)
+
+    return [nav.get_content().decode('utf-8') for nav in book_nav]
+
+
+def get_search_results(query: str, book_no: int) -> tuple[dict]:
+    """
+    Open book with book_no (epub format)
+    (book_no validates in get_books_names_and_no),
+    collects info about book name and author,
+    making search using BS4.
+
+    Args:
+        query (str): search query.
+        book_no (int): number of book in list
+                       (validates in get_books_names_and_no).
+
+    Returns:
+        book_data (dict): info about book number, author and name.
+        results (dict): search results with numbers of each result.
+    """
     results = []
-    books_list = listdir("book")
-    if book_no > (len(books_list) - 1):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=NOT_FOUND_BOOK_NO.format(book_no=book_no))
-
-    book = epub.read_epub(f'book/{books_list[book_no]}')
+    books_names, book_no = get_books_names_and_no(book_no)
+    book = epub.read_epub(f'book/{books_names[book_no]}')
     book_data = {'no': book_no,
                  'name': book.get_metadata('DC', 'title')[0][0],
                  'author': book.get_metadata('DC', 'creator')[0][0]}
@@ -35,17 +83,54 @@ def get_search_results(query: str, book_no: int):
                             in enumerate(results)])
 
 
-def process_results_list(book_data: dict, results: dict, page: int, size: int):
-    offset_min = page * size
-    offset_max = (page + 1) * size
+def get_books_names_and_no(book_no: int) -> tuple[list, int]:
+    """
+    Checks if book with book_no exists.
+
+    Args:
+        book_no (int): number of book from list.
+
+    Raises:
+        HTTPException: if book with book_no doesn't exist.
+
+    Returns:
+        books_list (list): books names from dir.
+        book_no (int): number of book in books_list.
+    """
+    books_names = listdir("book")
+
+    if book_no > (len(books_names) - 1):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=NOT_FOUND_BOOK_NO.format(book_no=book_no))
+
+    return books_names, book_no
+
+
+def process_results_list(book_data: dict,
+                         results: dict,
+                         page: int,
+                         limit: int) -> dict:
+    """
+    Makes dict with response.
+
+    Args:
+        book_data (dict): info about book number, author and name.
+        results (dict): search results from get_search_results.
+        page (int): requested page.
+        limit (int): limit for results per page.
+
+    Returns:
+        response (dict): response with all info.
+    """
     results = dict([(num, result.get_text())
                     for num, result
                     in results.items()])
+    total_pages, paginated_results = paginator(results, page, limit)
 
     return {"book_no": book_data['no'],
             "book_name": book_data['name'],
             "book_author": book_data['author'],
-            "results": dict(list(results.items())[offset_min:offset_max]),
+            "results": paginated_results,
             "page": page,
-            "size": size,
-            "total": ceil(len(results) / size) - 1}
+            "limit": limit,
+            "total_pages": total_pages}
