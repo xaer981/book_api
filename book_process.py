@@ -39,12 +39,35 @@ def get_book_list(page: int, limit: int) -> dict:
 
 
 def get_book(book_no: int) -> dict:
-    """Currently doesn't work fine. Need to think."""
+    """Works better. Can't wind with non-break space!!!"""
     books_names, book_no = get_books_names_and_no(book_no)
     book = epub.read_epub(f'book/{books_names[book_no]}')
-    book_nav = book.get_items_of_type(ebooklib.ITEM_NAVIGATION)
+    book_nav = list(book.get_items_of_type(ebooklib.ITEM_NAVIGATION))
+    decoded_nav = book_nav[0].get_content().decode('utf-8')
+    soup = BeautifulSoup(decoded_nav, 'xml')
+    navlabels = soup.find_all('navLabel')
+    labels = [' '.join(navlabel.text.split()) for navlabel in navlabels]
 
-    return [nav.get_content().decode('utf-8') for nav in book_nav]
+    return dict([(num, label) for num, label in enumerate(labels)])
+
+
+def get_book_chapter(book_no: int, item_id: int) -> str:
+    books_names, book_no = get_books_names_and_no(book_no)
+    book = epub.read_epub(f'book/{books_names[book_no]}')
+    book_nav = list(book.get_items_of_type(ebooklib.ITEM_NAVIGATION))
+    decoded_nav = book_nav[0].get_content().decode('utf-8')
+    soup = BeautifulSoup(decoded_nav, 'xml')
+    labels = get_book(book_no)
+    label = labels[item_id]
+    found_label = soup.find(string=label)
+    print(found_label)
+    src = found_label.find_parent('navPoint').find('content')['src']
+    src_id = src.split('#')
+    chapter = book.get_item_with_href(src_id[0])
+    decoded_chap = chapter.get_content().decode('utf-8')
+    soup2 = BeautifulSoup(decoded_chap, 'xml')
+
+    return soup2.find(id=src_id[1]).get_text()
 
 
 def get_search_results(query: str, book_no: int) -> tuple[dict]:
