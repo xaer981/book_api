@@ -1,38 +1,47 @@
 from typing import Annotated
 
 import uvicorn
-from fastapi import Body, FastAPI, HTTPException, Path, Query, status
+from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.decorator import cache
-from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from book_process import (get_book, get_book_chapter, get_book_list,
-                          get_search_results, process_results_list)
-from messages import NOT_FOUND_CHAPTER_ID, NOT_FOUND_QUERY
+from api.schemas import BookResultOut, SearchResultOut
+from book_handler.book_process import (get_book, get_book_chapter,
+                                       get_book_list, get_search_results,
+                                       process_results_list)
+from core.messages import NOT_FOUND_CHAPTER_ID, NOT_FOUND_QUERY
+from db.database import SessionLocal, engine
+from db import crud, models
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 
-class BookResultOut(BaseModel):
-    books: dict[int, str]
-    page: int
-    limit: int
-    total_pages: int
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
-class SearchResultOut(BaseModel):
-    book_no: int
-    book_name: str
-    book_author: str
-    results: dict[int, str]
-    page: int
-    limit: int
-    total_pages: int
+@app.get('/test/')
+async def test(limit: int = 100, db: Session = Depends(get_db)):
+
+    return crud.get_book_list(db, limit=limit)
 
 
-@app.get('/books', response_model=BookResultOut)
+@app.get('/test1/{id}')
+async def test1(id: int, db: Session = Depends(get_db)):
+
+    return crud.get_book_chapters(db, id=id)
+
+
+@app.get('/books/', response_model=BookResultOut)
 @cache(expire=240)
 async def book_list(page: int = Query(ge=1, default=1),
                     limit: int = Query(ge=1, le=100, default=5)):
@@ -61,7 +70,7 @@ async def get_chapter(book_no: Annotated[int, Path(ge=0)],
     return get_book_chapter(book_no, item_id)
 
 
-@app.get('/books/{book_no}/search', response_model=SearchResultOut)
+@app.get('/books/{book_no}/search/', response_model=SearchResultOut)
 @cache(expire=240)
 async def search_book(book_no: Annotated[int, Path(ge=0)],
                       query: Annotated[str, Body(embed=True)],

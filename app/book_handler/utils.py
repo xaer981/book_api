@@ -2,7 +2,7 @@ from math import ceil
 
 from fastapi import HTTPException, status
 
-from messages import NOT_FOUND_PAGE
+from core.messages import NOT_FOUND_PAGE
 
 
 def paginator(results: dict, page: int, limit: int) -> tuple[int, dict]:

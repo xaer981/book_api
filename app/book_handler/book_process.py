@@ -6,8 +6,51 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 from fastapi import HTTPException, status
 
-from messages import NOT_FOUND_BOOK_NO
-from utils import paginator
+from book_handler.utils import paginator
+from core.messages import NOT_FOUND_BOOK_NO
+
+
+def open_book(book_name: str):
+
+    return epub.read_epub(f'book/{book_name}')
+
+
+def get_book_data(book: epub.EpubBook):
+
+    return {'name': book.get_metadata('DC', 'title')[0][0],
+            'author': book.get_metadata('DC', 'creator')[0][0]}
+
+
+def get_books_names_and_no(book_no: int) -> tuple[list, int]:
+    """
+    Checks if book with book_no exists.
+
+    Args:
+        book_no (int): number of book from list.
+
+    Raises:
+        HTTPException: if book with book_no doesn't exist.
+
+    Returns:
+        books_list (list): books names from dir.
+        book_no (int): number of book in books_list.
+    """
+    books_names = listdir("book")
+
+    if book_no > (len(books_names) - 1):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=NOT_FOUND_BOOK_NO.format(book_no=book_no))
+
+    return books_names, book_no
+
+
+def get_nav_and_make_soup(book: epub.EpubBook,
+                          item_type: ebooklib.EXTENSIONS.keys()):
+    navs = list(book.get_items_of_type(item_type))
+    decoded_nav = navs[0].get_content().decode('utf-8')
+    decoded_nav = ' '.join(decoded_nav.split())
+
+    return BeautifulSoup(decoded_nav, 'xml')
 
 
 def get_book_list(page: int, limit: int) -> dict:
@@ -23,12 +66,11 @@ def get_book_list(page: int, limit: int) -> dict:
     """
     files = listdir('book')
     book_list = {}
-    for num, file in enumerate(files):
-        book = epub.read_epub(f'book/{file}')
-        name = book.get_metadata('DC', 'title')[0][0]
-        author = book.get_metadata('DC', 'creator')[0][0]
+    for num, book_name in enumerate(files):
+        book = open_book(book_name)
+        book_data = get_book_data(book)
 
-        book_list[num] = f'`{name}`, {author}'
+        book_list[num] = ('`{name}`, {author}').format(**book_data)
 
     total_pages, paginated_results = paginator(book_list, page, limit)
 
@@ -39,28 +81,23 @@ def get_book_list(page: int, limit: int) -> dict:
 
 
 def get_book(book_no: int) -> dict:
-    """Works better. Can't wind with non-break space!!!"""
+    """Works fine."""
     books_names, book_no = get_books_names_and_no(book_no)
-    book = epub.read_epub(f'book/{books_names[book_no]}')
-    book_nav = list(book.get_items_of_type(ebooklib.ITEM_NAVIGATION))
-    decoded_nav = book_nav[0].get_content().decode('utf-8')
-    soup = BeautifulSoup(decoded_nav, 'xml')
+    book = open_book(books_names[book_no])
+    soup = get_nav_and_make_soup(book, ebooklib.ITEM_NAVIGATION)
     navlabels = soup.find_all('navLabel')
-    labels = [' '.join(navlabel.text.split()) for navlabel in navlabels]
+    labels = [navlabel.text.strip() for navlabel in navlabels]
 
     return dict([(num, label) for num, label in enumerate(labels)])
 
 
 def get_book_chapter(book_no: int, item_id: int) -> str:
     books_names, book_no = get_books_names_and_no(book_no)
-    book = epub.read_epub(f'book/{books_names[book_no]}')
-    book_nav = list(book.get_items_of_type(ebooklib.ITEM_NAVIGATION))
-    decoded_nav = book_nav[0].get_content().decode('utf-8')
-    soup = BeautifulSoup(decoded_nav, 'xml')
+    book = open_book(books_names[book_no])
+    soup = get_nav_and_make_soup(book, ebooklib.ITEM_NAVIGATION)
     labels = get_book(book_no)
     label = labels[item_id]
     found_label = soup.find(string=label)
-    print(found_label)
     src = found_label.find_parent('navPoint').find('content')['src']
     src_id = src.split('#')
     chapter = book.get_item_with_href(src_id[0])
@@ -88,10 +125,9 @@ def get_search_results(query: str, book_no: int) -> tuple[dict]:
     """
     results = []
     books_names, book_no = get_books_names_and_no(book_no)
-    book = epub.read_epub(f'book/{books_names[book_no]}')
-    book_data = {'no': book_no,
-                 'name': book.get_metadata('DC', 'title')[0][0],
-                 'author': book.get_metadata('DC', 'creator')[0][0]}
+    book = open_book(books_names[book_no])
+    book_data = get_book_data(book)
+    book_data['no'] = book_no
     strings = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
     strings = [string.get_content().decode('utf-8') for string in strings]
     for string in strings:
@@ -104,29 +140,6 @@ def get_search_results(query: str, book_no: int) -> tuple[dict]:
     return book_data, dict([(num, result)
                             for num, result
                             in enumerate(results)])
-
-
-def get_books_names_and_no(book_no: int) -> tuple[list, int]:
-    """
-    Checks if book with book_no exists.
-
-    Args:
-        book_no (int): number of book from list.
-
-    Raises:
-        HTTPException: if book with book_no doesn't exist.
-
-    Returns:
-        books_list (list): books names from dir.
-        book_no (int): number of book in books_list.
-    """
-    books_names = listdir("book")
-
-    if book_no > (len(books_names) - 1):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=NOT_FOUND_BOOK_NO.format(book_no=book_no))
-
-    return books_names, book_no
 
 
 def process_results_list(book_data: dict,
