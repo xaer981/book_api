@@ -8,13 +8,13 @@ from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.decorator import cache
 from sqlalchemy.orm import Session
 
-from api.schemas import BookResultOut, SearchResultOut
 from book_handler.book_process import (get_book, get_book_chapter,
                                        get_book_list, get_search_results,
                                        process_results_list)
 from core.messages import NOT_FOUND_CHAPTER_ID, NOT_FOUND_QUERY
-from db.database import SessionLocal, engine
 from db import crud, models
+from db.database import SessionLocal, engine
+from schemas import BookResultOut, SearchResultOut
 
 models.Base.metadata.create_all(bind=engine)
 
