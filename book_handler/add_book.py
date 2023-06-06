@@ -2,13 +2,24 @@ import ebooklib
 from bs4 import BeautifulSoup
 from ebooklib import epub
 from sqlalchemy import exists, insert, select
-from sqlalchemy.orm import Session
 
-from db.database import engine
+from db.database import SessionLocal
 from db.models import Author, Book, Chapter
 
 
 def get_book_info(book_name: str):
+    """
+    Getting book name, author, chapters list from book by file name.
+
+    Args:
+        book_name (str): book_name in dir with files.
+
+    Returns:
+        book_obj (dict): contains book name and path (file name).
+        author_obj (dict): contains name of author.
+        chapters_obj (dict): contains number of chapter,
+                             name, path to chapter (href in xhtml).
+    """
     try:
         book = epub.read_epub(f'book/{book_name}')
     except FileNotFoundError as e:
@@ -35,7 +46,19 @@ def get_book_info(book_name: str):
 
 
 def add_to_db(book_obj, author_obj, chapters_obj):
-    session = Session(engine)
+    """
+    Adding files to DB.
+
+    Args:
+        book_obj (dict): contains book name and path (file name).
+        author_obj (dict): contains name of author.
+        chapters_obj (dict): contains number of chapter,
+                             name, path to chapter (href in xhtml).
+
+    Returns:
+        str: 'Success'
+    """
+    session = SessionLocal()
     if session.query(exists()
                      .where(Author.name == author_obj['name'])).scalar():
         author_id = session.scalar(select(Author.id)
@@ -49,5 +72,6 @@ def add_to_db(book_obj, author_obj, chapters_obj):
     session.scalar(insert(Chapter).values(book_id=book_id), chapters_obj)
 
     session.commit()
+    session.close()
 
     return 'Success'

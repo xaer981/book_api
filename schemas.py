@@ -1,18 +1,38 @@
 from pydantic import BaseModel
 
 
-class BookResultOut(BaseModel):
-    books: dict[int, str]
-    page: int
-    limit: int
-    total_pages: int
+class Author(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        orm_mode = True
 
 
-class SearchResultOut(BaseModel):
-    book_no: int
-    book_name: str
-    book_author: str
-    results: dict[int, str]
-    page: int
-    limit: int
-    total_pages: int
+class Book(BaseModel):
+    id: int
+    name: str
+    author: Author
+
+    class Config:
+        orm_mode = True
+
+
+class Chapter(BaseModel):
+    number: int
+    name: str
+
+    class Config:
+        orm_mode = True
+
+
+class BookChapters(Book):
+    chapters: list[Chapter] = []
+
+    class Config:
+        orm_mode = True
+
+
+class SearchResults(BaseModel):
+    chapter_id: int
+    results: list[str] = []
