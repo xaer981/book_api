@@ -26,7 +26,7 @@ def get_chapter_text(paths: dict) -> str:
         paths (dict): only book_path inside.
 
     Returns:
-        str: text of chapter.
+        str: text of chapter with replaced multiple break-lines with only one.
     """
     book = open_book(paths['book_path'])
     src_id = paths['chapter_path'].split('#')
@@ -34,7 +34,8 @@ def get_chapter_text(paths: dict) -> str:
     decoded_chap = chapter.get_content().decode('utf-8')
     soup = BeautifulSoup(decoded_chap, 'xml')
 
-    return soup.find(id=src_id[1]).get_text()
+    return re.sub(r'\n+', '\n',
+                  (soup.find(id=src_id[1]).get_text(separator='\n').strip()))
 
 
 def get_search_results(query: str,
@@ -61,8 +62,9 @@ def get_search_results(query: str,
         soup = BeautifulSoup(decoded_chap, 'xml')
         result = (soup
                   .find(id=src_id[1])
-                  .find_all(name='p', string=re.compile(query,
-                                                        flags=re.I | re.M)))
+                  .find_all(name='p',
+                            string=re.compile(rf'^(.*?(\b{query}\b)[^$]*)$',
+                                              flags=re.I | re.M)))
         if result:
             results.append({'chapter_id': num_path[0],
                             'results': [res.get_text() for res in result]})

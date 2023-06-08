@@ -9,9 +9,15 @@ class Author(BaseModel):
         orm_mode = True
 
 
-class Book(BaseModel):
+class BookBase(BaseModel):
     id: int
     name: str
+
+    class Config:
+        orm_mode = True
+
+
+class Book(BookBase):
     author: Author
 
     class Config:
@@ -28,6 +34,13 @@ class Chapter(BaseModel):
 
 class BookChapters(Book):
     chapters: list[Chapter] = []
+
+    class Config:
+        orm_mode = True
+
+
+class AuthorBooks(Author):
+    books: list[BookBase] = []
 
     class Config:
         orm_mode = True

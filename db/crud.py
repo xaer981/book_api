@@ -1,7 +1,22 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Book, Chapter
+from .models import Author, Book, Chapter
+
+
+def get_author_list(db: Session, limit: int = 5):
+    """
+    Getting list of all authors in DB with limit.
+
+    Args:
+        db (Session): database session.
+        limit (int, optional): Limit for output. Defaults to 5.
+
+    Returns:
+        list: authors.
+    """
+
+    return db.query(Author).limit(limit).all()
 
 
 def get_book_list(db: Session, limit: int = 100):
