@@ -15,7 +15,7 @@ def open_book(book_name: str):
         epub.EpubBook: opened book.
     """
 
-    return epub.read_epub(f'book/{book_name}')
+    return epub.read_epub(f'book/{book_name}', options={'ignore_ncx': True})
 
 
 def get_chapter_text(paths: dict) -> str:

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class Author(BaseModel):
+    """Schema of Author for using in other schemas."""
     id: int
     name: str
 
@@ -10,6 +11,7 @@ class Author(BaseModel):
 
 
 class BookBase(BaseModel):
+    """Schema of Book for using in other schemas."""
     id: int
     name: str
 
@@ -18,6 +20,7 @@ class BookBase(BaseModel):
 
 
 class Book(BookBase):
+    """Schema of Book for using in /books/ endpoint."""
     author: Author
 
     class Config:
@@ -25,6 +28,7 @@ class Book(BookBase):
 
 
 class Chapter(BaseModel):
+    """Schema of Chapter for using in other schemas."""
     number: int
     name: str
 
@@ -33,19 +37,32 @@ class Chapter(BaseModel):
 
 
 class BookChapters(Book):
-    chapters: list[Chapter] = []
+    """Schema of Book for using in /books/{book_id} endpoint."""
+    chapters: list[Chapter]
+
+    class Config:
+        orm_mode = True
+
+
+class AuthorInfo(Author):
+    """Schema of Author for using in /authors/ endpoint."""
+    books_count: int
 
     class Config:
         orm_mode = True
 
 
 class AuthorBooks(Author):
-    books: list[BookBase] = []
+    """Schema of Author for using in /authors/{author_id} endpoint."""
+    books: list[BookBase]
 
     class Config:
         orm_mode = True
 
 
 class SearchResults(BaseModel):
+    """
+    Schema for displaing search results in /books/{book_id}/search/ endpoint.
+    """
     chapter_id: int
-    results: list[str] = []
+    results: list[str]

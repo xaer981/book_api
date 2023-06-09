@@ -19,6 +19,21 @@ def get_author_list(db: Session, limit: int = 5):
     return db.query(Author).limit(limit).all()
 
 
+def get_author_by_id(db: Session, author_id: int):
+    """
+    Getting author by id.
+
+    Args:
+        db (Session): database session.
+        author_id (int): id of author in db.
+
+    Returns:
+        item: author.
+    """
+
+    return db.query(Author).where(Author.id == author_id).first()
+
+
 def get_book_list(db: Session, limit: int = 100):
     """
     Getting list of all books in DB with limit.
@@ -36,7 +51,7 @@ def get_book_list(db: Session, limit: int = 100):
 
 def get_book_by_id(db: Session, book_id: int):
     """
-    Getting book by number.
+    Getting book by id.
 
     Args:
         db (Session): database session.

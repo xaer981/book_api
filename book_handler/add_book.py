@@ -1,13 +1,14 @@
 import ebooklib
 from bs4 import BeautifulSoup
 from ebooklib import epub
-from sqlalchemy import exists, insert, select
+from sqlalchemy import exc, exists, insert, select
+from termcolor import colored
 
 from db.database import SessionLocal
 from db.models import Author, Book, Chapter
 
 
-def get_book_info(book_name: str):
+def get_book_content(book_name: str):
     """
     Getting book name, author, chapters list from book by file name.
 
@@ -21,7 +22,8 @@ def get_book_info(book_name: str):
                              name, path to chapter (href in xhtml).
     """
     try:
-        book = epub.read_epub(f'book/{book_name}')
+        book = epub.read_epub(f'book/{book_name}',
+                              options={'ignore_ncx': True})
     except FileNotFoundError as e:
 
         return f'Файл не найден!\n Ошибка: {e}'
@@ -68,10 +70,15 @@ def add_to_db(book_obj, author_obj, chapters_obj):
                                    .returning(Author.id), author_obj)
 
     book_obj['author_id'] = author_id
-    book_id = session.scalar(insert(Book).returning(Book.id), book_obj)
-    session.scalar(insert(Chapter).values(book_id=book_id), chapters_obj)
+    try:
+        book_id = session.scalar(insert(Book).returning(Book.id), book_obj)
+        session.scalar(insert(Chapter).values(book_id=book_id), chapters_obj)
 
-    session.commit()
-    session.close()
+        session.commit()
+        session.close()
+    except exc.IntegrityError:
+        session.rollback()
 
-    return 'Success'
+        return colored('Book already exists in DB.', 'white', 'on_red')
+
+    return colored('Success', 'white', 'on_green')

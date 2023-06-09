@@ -12,7 +12,7 @@ from book_handler.book_process import get_chapter_text, get_search_results
 from core.messages import NOT_FOUND_BOOK_ID, NOT_FOUND_CHAPTER_NUMBER
 from db import crud, models
 from db.database import SessionLocal, engine
-from schemas import AuthorBooks, Book, BookChapters, SearchResults
+from schemas import AuthorBooks, AuthorInfo, Book, BookChapters, SearchResults
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,12 +27,20 @@ def get_db():
         db.close()
 
 
-@app.get('/authors/', response_model=list[AuthorBooks])
+@app.get('/authors/', response_model=list[AuthorInfo])
 @cache(expire=240)
 async def author_list(limit: int = Query(ge=1, le=10, default=5),
                       db: Session = Depends(get_db)):
 
     return crud.get_author_list(db, limit=limit)
+
+
+@app.get('/authors/{author_id}', response_model=AuthorBooks)
+@cache(expire=240)
+async def author_get(author_id: Annotated[int, Path(ge=0)],
+                     db: Session = Depends(get_db)):
+
+    return crud.get_author_by_id(db, author_id=author_id)
 
 
 @app.get('/books/', response_model=list[Book])
