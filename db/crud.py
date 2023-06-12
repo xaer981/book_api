@@ -1,22 +1,22 @@
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import Author, Book, Chapter
 
 
-def get_author_list(db: Session, limit: int = 5):
+def get_author_list(db: Session):
     """
-    Getting list of all authors in DB with limit.
+    Getting paginated list of all authors in DB with.
 
     Args:
         db (Session): database session.
-        limit (int, optional): Limit for output. Defaults to 5.
 
     Returns:
         list: authors.
     """
 
-    return db.query(Author).limit(limit).all()
+    return paginate(db, select(Author).order_by(Author.id))
 
 
 def get_author_by_id(db: Session, author_id: int):
@@ -34,19 +34,18 @@ def get_author_by_id(db: Session, author_id: int):
     return db.query(Author).where(Author.id == author_id).first()
 
 
-def get_book_list(db: Session, limit: int = 100):
+def get_book_list(db: Session):
     """
-    Getting list of all books in DB with limit.
+    Getting paginated list of all books in DB.
 
     Args:
         db (Session): database session.
-        limit (int, optional): Limit for output. Defaults to 100.
 
     Returns:
         list: books.
     """
 
-    return db.query(Book).limit(limit).all()
+    return paginate(db, select(Book).order_by(Book.id))
 
 
 def get_book_by_id(db: Session, book_id: int):

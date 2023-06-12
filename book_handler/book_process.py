@@ -50,7 +50,8 @@ def get_search_results(query: str,
         chaps_nums_and_paths (list): list of chapters(number, path (xhtml)).
 
     Returns:
-        results (dict): {chapter_id (int): number of chapter, where searched,
+        results (list): (dicts):
+                        {chapter_id (int): number of chapter, where searched,
                          results (list): text found in chapter}.
     """
     results = []

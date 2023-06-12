@@ -1,14 +1,16 @@
 from typing import Annotated
 
 import uvicorn
-from fastapi import Body, Depends, FastAPI, HTTPException, Path, Query, status
+from fastapi import Body, Depends, FastAPI, HTTPException, Path, status
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.decorator import cache
+from fastapi_pagination import add_pagination
 from sqlalchemy.orm import Session
 
 from book_handler.book_process import get_chapter_text, get_search_results
+from book_handler.utils import CustomPage
 from core.messages import NOT_FOUND_BOOK_ID, NOT_FOUND_CHAPTER_NUMBER
 from db import crud, models
 from db.database import SessionLocal, engine
@@ -27,12 +29,11 @@ def get_db():
         db.close()
 
 
-@app.get('/authors/', response_model=list[AuthorInfo])
+@app.get('/authors/', response_model=CustomPage[AuthorInfo])
 @cache(expire=240)
-async def author_list(limit: int = Query(ge=1, le=10, default=5),
-                      db: Session = Depends(get_db)):
+async def author_list(db: Session = Depends(get_db)):
 
-    return crud.get_author_list(db, limit=limit)
+    return crud.get_author_list(db)
 
 
 @app.get('/authors/{author_id}', response_model=AuthorBooks)
@@ -43,12 +44,11 @@ async def author_get(author_id: Annotated[int, Path(ge=0)],
     return crud.get_author_by_id(db, author_id=author_id)
 
 
-@app.get('/books/', response_model=list[Book])
+@app.get('/books/', response_model=CustomPage[Book])
 @cache(expire=240)
-async def book_list(limit: int = Query(ge=1, le=100, default=5),
-                    db: Session = Depends(get_db)):
+async def book_list(db: Session = Depends(get_db)):
 
-    return crud.get_book_list(db, limit=limit)
+    return crud.get_book_list(db)
 
 
 @app.get('/books/{book_id}', response_model=BookChapters)
@@ -65,7 +65,9 @@ async def book_get(book_id: Annotated[int, Path(ge=0)],
 
 
 @app.get('/books/{book_id}/chapter/{chapter_number}',
-         response_class=PlainTextResponse)
+         response_class=PlainTextResponse,
+         responses={200: {'content': {'text/plain': {}},
+                          'description': 'Return text of chapter.'}})
 @cache(expire=240)
 async def chapter_get(book_id: Annotated[int, Path(ge=0)],
                       chapter_number: Annotated[int, Path(ge=0)],
@@ -103,6 +105,7 @@ async def book_search(book_id: Annotated[int, Path(ge=0)],
 @app.on_event('startup')
 async def startup():
     FastAPICache.init(InMemoryBackend())
+    add_pagination(app)
 
 
 if __name__ == '__main__':
