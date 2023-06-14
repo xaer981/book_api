@@ -1,20 +1,26 @@
+import os
 from typing import Annotated
 
+import redis.asyncio as redis
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Path, status
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from fastapi_pagination import add_pagination
 from sqlalchemy.orm import Session
 
 from book_handler.book_process import get_chapter_text, get_search_results
 from book_handler.utils import CustomPage
+from core.cache import custom_key_builder
 from core.messages import NOT_FOUND_BOOK_ID, NOT_FOUND_CHAPTER_NUMBER
 from db import crud, models
 from db.database import SessionLocal, engine
 from schemas import AuthorBooks, AuthorInfo, Book, BookChapters, SearchResults
+
+load_dotenv()
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -30,14 +36,14 @@ def get_db():
 
 
 @app.get('/authors/', response_model=CustomPage[AuthorInfo])
-@cache(expire=240)
+@cache(expire=240, key_builder=custom_key_builder)
 async def author_list(db: Session = Depends(get_db)):
 
     return crud.get_author_list(db)
 
 
 @app.get('/authors/{author_id}', response_model=AuthorBooks)
-@cache(expire=240)
+@cache(expire=240, key_builder=custom_key_builder)
 async def author_get(author_id: Annotated[int, Path(ge=0)],
                      db: Session = Depends(get_db)):
 
@@ -45,14 +51,14 @@ async def author_get(author_id: Annotated[int, Path(ge=0)],
 
 
 @app.get('/books/', response_model=CustomPage[Book])
-@cache(expire=240)
+@cache(expire=240, key_builder=custom_key_builder)
 async def book_list(db: Session = Depends(get_db)):
 
     return crud.get_book_list(db)
 
 
 @app.get('/books/{book_id}', response_model=BookChapters)
-@cache(expire=240)
+@cache(expire=240, key_builder=custom_key_builder)
 async def book_get(book_id: Annotated[int, Path(ge=0)],
                    db: Session = Depends(get_db)):
 
@@ -68,7 +74,7 @@ async def book_get(book_id: Annotated[int, Path(ge=0)],
          response_class=PlainTextResponse,
          responses={200: {'content': {'text/plain': {}},
                           'description': 'Return text of chapter.'}})
-@cache(expire=240)
+@cache(expire=240, key_builder=custom_key_builder)
 async def chapter_get(book_id: Annotated[int, Path(ge=0)],
                       chapter_number: Annotated[int, Path(ge=0)],
                       db: Session = Depends(get_db)):
@@ -87,7 +93,7 @@ async def chapter_get(book_id: Annotated[int, Path(ge=0)],
 
 
 @app.get('/books/{book_id}/search/', response_model=list[SearchResults])
-@cache(expire=240)
+@cache(expire=240, key_builder=custom_key_builder)
 async def book_search(book_id: Annotated[int, Path(ge=0)],
                       query: Annotated[str, Body(embed=True, min_length=3)],
                       db: Session = Depends(get_db)):
@@ -104,7 +110,10 @@ async def book_search(book_id: Annotated[int, Path(ge=0)],
 
 @app.on_event('startup')
 async def startup():
-    FastAPICache.init(InMemoryBackend())
+    r = redis.from_url(os.getenv('REDIS_URL'),
+                       encoding='utf-8',
+                       decode_responses=True)
+    FastAPICache.init(RedisBackend(r), prefix='fastapi-cache')
     add_pagination(app)
 
 
