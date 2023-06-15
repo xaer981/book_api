@@ -12,11 +12,16 @@ def custom_key_builder(
     args: tuple = None,
     kwargs: dict = None,
 ) -> str:
+    """
+    Generating cache key with request.query_params
+    to cache paginated results correctly.
+    """
     prefix = f'{FastAPICache.get_prefix()}:{namespace}:'
     if 'db' in kwargs:
         del kwargs['db']
 
     return (prefix
             + hashlib.md5(
-                          f'{func.__module__}:{func.__name__}:{args}:{kwargs}'
+                          f'{func.__module__}:{func.__name__}'
+                          f':{args}:{kwargs}:{request.query_params}'
                           .encode()).hexdigest())

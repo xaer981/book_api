@@ -25,6 +25,7 @@ load_dotenv()
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+add_pagination(app)
 
 
 def get_db():
@@ -114,7 +115,6 @@ async def startup():
                        encoding='utf-8',
                        decode_responses=True)
     FastAPICache.init(RedisBackend(r), prefix='fastapi-cache')
-    add_pagination(app)
 
 
 if __name__ == '__main__':
