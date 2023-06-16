@@ -66,3 +66,8 @@ class SearchResults(BaseModel):
     """
     chapter_id: int
     results: list[str]
+
+
+class Message(BaseModel):
+    """Schema for displaing error messages in docs."""
+    detail: str
