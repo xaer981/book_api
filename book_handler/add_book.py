@@ -2,7 +2,6 @@ import ebooklib
 from bs4 import BeautifulSoup
 from ebooklib import epub
 from sqlalchemy import exc, exists, insert, select
-from termcolor import colored
 
 from db.database import SessionLocal
 from db.models import Author, Book, Chapter
@@ -76,9 +75,9 @@ def add_to_db(book_obj, author_obj, chapters_obj):
 
         session.commit()
         session.close()
-    except exc.IntegrityError:
+    except exc.IntegrityError as e:
         session.rollback()
 
-        return colored('Book already exists in DB.', 'white', 'on_red')
+        raise e
 
-    return colored('Success', 'white', 'on_green')
+    return 'Success'

@@ -1,32 +1,58 @@
 import os
+from contextlib import asynccontextmanager
 from typing import Annotated
 
+import aiofiles
 import redis.asyncio as redis
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import Body, Depends, FastAPI, HTTPException, Path, status
+from fastapi import (Body, Depends, FastAPI, HTTPException, Path, UploadFile,
+                     status)
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from fastapi_pagination import add_pagination
+from sqlalchemy import exc
 from sqlalchemy.orm import Session
 
+from auth_admin import check_admin
 from book_handler.book_process import get_chapter_text, get_search_results
 from book_handler.utils import CustomPage
 from core.cache import CustomORJsonCoder, custom_key_builder
-from core.constants import (NOT_FOUND_AUTHOR_ID, NOT_FOUND_BOOK_ID,
+from core.constants import (BAD_FILE_FORMAT, BOOK_ALREADY_EXISTS,
+                            NOT_FOUND_AUTHOR_ID, NOT_FOUND_BOOK_ID,
                             NOT_FOUND_CHAPTER_NUMBER, RESPONSES)
 from db import crud, models
 from db.database import SessionLocal, engine
+from new_book import add_new_book
 from schemas import AuthorBooks, AuthorInfo, Book, BookChapters, SearchResults
 
 load_dotenv()
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
-add_pagination(app)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Adding pagination, connecting to redis on startup.
+    Flushing all in redis on shutdown.
+    """
+    add_pagination(app)
+    pool = redis.ConnectionPool.from_url(os.getenv('REDIS_URL'),
+                                         encoding='utf-8',
+                                         decode_responses=True)
+    r = redis.Redis(connection_pool=pool)
+    FastAPICache.init(RedisBackend(r),
+                      prefix='fastapi-cache',
+                      key_builder=custom_key_builder)
+
+    yield
+
+    await r.flushall()
+
+app = FastAPI(lifespan=lifespan)
 
 
 def get_db():
@@ -70,6 +96,27 @@ async def author_get(author_id: Annotated[int, Path(ge=0)],
 async def book_list(db: Session = Depends(get_db)):
 
     return crud.get_book_list(db)
+
+
+@app.post('/books/', dependencies=[Depends(check_admin)])
+async def test(book: UploadFile):
+    if book.content_type != 'application/epub+zip':
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=BAD_FILE_FORMAT)
+    if book.filename in os.listdir('book'):
+        book.filename += '(2)'
+
+    async with aiofiles.open(f'book/{book.filename}', 'wb') as out_file:
+        content = await book.read()
+        await out_file.write(content)
+
+    try:
+        return add_new_book(book.filename)
+    except exc.IntegrityError:
+        os.remove(f'book/{book.filename}')
+
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=BOOK_ALREADY_EXISTS)
 
 
 @app.get('/books/{book_id}',
@@ -129,23 +176,6 @@ async def book_search(book_id: Annotated[int, Path(ge=0)],
     chap_nums_paths = crud.get_chaps_nums_and_paths(db, book_id)
 
     return get_search_results(query, book_path, chap_nums_paths)
-
-
-@app.on_event('startup')
-async def startup():
-    pool = redis.ConnectionPool.from_url(os.getenv('REDIS_URL'),
-                                         encoding='utf-8',
-                                         decode_responses=True)
-    r = redis.Redis(connection_pool=pool)
-    FastAPICache.init(RedisBackend(r),
-                      prefix='fastapi-cache',
-                      key_builder=custom_key_builder)
-
-
-@app.on_event('shutdown')
-async def shutdown():
-    r = redis.Redis.from_url(os.getenv('REDIS_URL'))
-    await r.flushall()
 
 
 if __name__ == '__main__':
