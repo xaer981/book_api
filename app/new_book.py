@@ -9,7 +9,7 @@ def add_new_book(file_name: str):
         file_name (str): file name of book (.epub).
 
     Returns:
-        str: result of adding to db (success or not).
+        str (success) or raises error in add_to_db.
     """
 
     name, author, chapters = get_book_content(file_name)

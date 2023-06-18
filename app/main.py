@@ -82,6 +82,7 @@ async def author_get(author_id: Annotated[int, Path(ge=0)],
                      db: Session = Depends(get_db)):
     author = crud.get_author_by_id(db, author_id=author_id)
     if author is None:
+
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_AUTHOR_ID.format(
                                 author_id=author_id))
@@ -98,9 +99,12 @@ async def book_list(db: Session = Depends(get_db)):
     return crud.get_book_list(db)
 
 
-@app.post('/books/', dependencies=[Depends(check_admin)])
-async def test(book: UploadFile):
+@app.post('/books/',
+          dependencies=[Depends(check_admin)],
+          description='Add .epub book to DB (only for admin).')
+async def book_add(book: UploadFile):
     if book.content_type != 'application/epub+zip':
+
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=BAD_FILE_FORMAT)
     if book.filename in os.listdir('book'):
@@ -108,10 +112,15 @@ async def test(book: UploadFile):
 
     async with aiofiles.open(f'book/{book.filename}', 'wb') as out_file:
         content = await book.read()
+
         await out_file.write(content)
 
     try:
-        return add_new_book(book.filename)
+        result = add_new_book(book.filename)
+        await redis.Redis.from_url(os.getenv('REDIS_URL')).flushall()
+
+        return result
+
     except exc.IntegrityError:
         os.remove(f'book/{book.filename}')
 
@@ -129,6 +138,7 @@ async def book_get(book_id: Annotated[int, Path(ge=0)],
                    db: Session = Depends(get_db)):
     book = crud.get_book_by_id(db, book_id=book_id)
     if book is None:
+
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_BOOK_ID.format(book_id=book_id))
 
@@ -147,10 +157,12 @@ async def chapter_get(book_id: Annotated[int, Path(ge=0)],
                       db: Session = Depends(get_db)):
     paths = crud.get_paths(db, book_id, chapter_number)
     if paths['book_path'] is None:
+
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_BOOK_ID.format(book_id=book_id))
 
     if paths['chapter_path'] is None:
+
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_CHAPTER_NUMBER.format(
                                 book_id=book_id,
@@ -170,6 +182,7 @@ async def book_search(book_id: Annotated[int, Path(ge=0)],
     book_path = crud.get_paths(db, book_id)
 
     if book_path['book_path'] is None:
+
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_BOOK_ID.format(book_id=book_id))
 
