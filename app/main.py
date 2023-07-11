@@ -13,20 +13,19 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from fastapi_pagination import add_pagination
+from new_book import add_new_book
+from schemas import AuthorBooks, AuthorInfo, Book, BookChapters, SearchResults
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
 
 from auth_admin import check_admin
-from book_handler.book_process import get_chapter_text, get_search_results
+from db import crud, models
 from book_handler.utils import CustomPage
 from core.cache import CustomORJsonCoder, custom_key_builder
 from core.constants import (BAD_FILE_FORMAT, BOOK_ALREADY_EXISTS,
                             NOT_FOUND_AUTHOR_ID, NOT_FOUND_BOOK_ID,
                             NOT_FOUND_CHAPTER_NUMBER, RESPONSES)
-from db import crud, models
 from db.database import SessionLocal, engine
-from new_book import add_new_book
-from schemas import AuthorBooks, AuthorInfo, Book, BookChapters, SearchResults
 
 load_dotenv()
 
@@ -66,7 +65,7 @@ def get_db():
 @app.get('/authors/',
          response_model=CustomPage[AuthorInfo],
          description='Full list of authors in DB with pagination.')
-@cache(expire=240)
+@cache()
 async def author_list(db: Session = Depends(get_db)):
 
     return crud.get_author_list(db)
@@ -76,11 +75,10 @@ async def author_list(db: Session = Depends(get_db)):
          response_model=AuthorBooks,
          description='Author by ID.',
          responses={**RESPONSES})
-@cache(expire=240,
-       coder=CustomORJsonCoder(response_model=AuthorBooks))
+@cache(coder=CustomORJsonCoder(response_model=AuthorBooks))
 async def author_get(author_id: Annotated[int, Path(ge=0)],
                      db: Session = Depends(get_db)):
-    author = crud.get_author_by_id(db, author_id=author_id)
+    author = crud.get_author(db, author_id=author_id)
     if author is None:
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -93,7 +91,7 @@ async def author_get(author_id: Annotated[int, Path(ge=0)],
 @app.get('/books/',
          response_model=CustomPage[Book],
          description='Full list of books in DB with pagination.')
-@cache(expire=240)
+@cache()
 async def book_list(db: Session = Depends(get_db)):
 
     return crud.get_book_list(db)
@@ -122,21 +120,22 @@ async def book_add(book: UploadFile):
         return result
 
     except exc.IntegrityError:
-        os.remove(f'book/{book.filename}')
 
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=BOOK_ALREADY_EXISTS)
+
+    finally:
+        os.remove(f'book/{book.filename}')
 
 
 @app.get('/books/{book_id}',
          response_model=BookChapters,
          description='Book by ID.',
          responses={**RESPONSES})
-@cache(expire=240,
-       coder=CustomORJsonCoder(response_model=BookChapters))
+@cache(coder=CustomORJsonCoder(response_model=BookChapters))
 async def book_get(book_id: Annotated[int, Path(ge=0)],
                    db: Session = Depends(get_db)):
-    book = crud.get_book_by_id(db, book_id=book_id)
+    book = crud.get_book(db, book_id=book_id)
     if book is None:
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -151,44 +150,38 @@ async def book_get(book_id: Annotated[int, Path(ge=0)],
          responses={**RESPONSES,
                     200: {'content': {'text/plain': {}},
                           'description': 'Returns text of chapter.'}})
-@cache(expire=240)
+@cache()
 async def chapter_get(book_id: Annotated[int, Path(ge=0)],
                       chapter_number: Annotated[int, Path(ge=0)],
                       db: Session = Depends(get_db)):
-    paths = crud.get_paths(db, book_id, chapter_number)
-    if paths['book_path'] is None:
-
+    if not crud.book_exists(db, book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_BOOK_ID.format(book_id=book_id))
 
-    if paths['chapter_path'] is None:
+    chapter = crud.get_chapter_text(db, book_id, chapter_number)
 
+    if not chapter:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_CHAPTER_NUMBER.format(
-                                book_id=book_id,
-                                chapter_number=chapter_number))
+                                chapter_number=chapter_number,
+                                book_id=book_id))
 
-    return get_chapter_text(paths)
+    return chapter[0]
 
 
 @app.get('/books/{book_id}/search/',
          response_model=list[SearchResults],
          description='Search query in book by ID.',
          responses={**RESPONSES})
-@cache(expire=240)
+@cache()
 async def book_search(book_id: Annotated[int, Path(ge=0)],
                       query: Annotated[str, Body(embed=True, min_length=3)],
                       db: Session = Depends(get_db)):
-    book_path = crud.get_paths(db, book_id)
-
-    if book_path['book_path'] is None:
-
+    if not crud.book_exists(db, book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=NOT_FOUND_BOOK_ID.format(book_id=book_id))
 
-    chap_nums_paths = crud.get_chaps_nums_and_paths(db, book_id)
-
-    return get_search_results(query, book_path, chap_nums_paths)
+    return crud.search_in_book(db, book_id, query)
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, func, select
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy.orm import column_property, relationship
 
 from .database import Base
@@ -55,7 +55,7 @@ class Chapter(Base):
     id (int) = primary key.
     number (int) = number of chapter in book.
     name (str) = name of chapter.
-    path (str) = path to chapter xhtml file + tag (e.g. ch1-2.xhtml#id1).
+    text (str) = text of chapter.
     book_id (int) = id of book in Book model.
     book = relationship with Book model.
     """
@@ -64,6 +64,6 @@ class Chapter(Base):
     id = Column(Integer, primary_key=True, index=True)
     number = Column(Integer, unique=False)
     name = Column(String, unique=False)
-    path = Column(String, unique=False)
+    text = Column(Text)
     book_id = Column(Integer, ForeignKey('books.id'))
     book = relationship('Book', back_populates='chapters')

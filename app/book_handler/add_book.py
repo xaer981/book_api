@@ -1,3 +1,6 @@
+import re
+from unicodedata import normalize
+
 import ebooklib
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -36,11 +39,23 @@ def get_book_content(book_name: str):
     soup = BeautifulSoup(decoded_nav, 'xml')
     navlabels = soup.find_all('navLabel')
     labels = [navlabel.text.strip() for navlabel in navlabels]
+    paths = [soup.find(string=label)
+             .find_parent('navPoint')
+             .find('content')['src']
+             for label in labels]
+    chapters_text = []
+    for path in paths:
+        src_id = path.split('#')
+        chapter = book.get_item_with_href(src_id[0])
+        decoded_chap = chapter.get_content().decode('utf-8')
+        s = BeautifulSoup(decoded_chap, 'xml')
+        chapters_text.append(re.sub(r'\n+', '\n',
+                             (s.find(id=src_id[1])
+                              .get_text(separator='\n')
+                              .strip())))
     chapters_obj = tuple([{'number': num,
                            'name': label,
-                           'path': (soup.find(string=label)
-                                    .find_parent('navPoint')
-                                    .find('content')['src'])}
+                           'text': normalize('NFKD', chapters_text[num])}
                          for num, label in enumerate(labels)])
 
     return book_obj, author_obj, chapters_obj

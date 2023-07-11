@@ -64,8 +64,8 @@ class SearchResults(BaseModel):
     """
     Schema for displaing search results in /books/{book_id}/search/ endpoint.
     """
-    chapter_id: int
-    results: list[str]
+    chapter_number: int
+    result: str
 
 
 class Message(BaseModel):
