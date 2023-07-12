@@ -1,4 +1,4 @@
-from schemas import Message
+from app.schemas import Message
 
 BAD_FILE_FORMAT = 'We support only .epub files now.'
 BOOK_ALREADY_EXISTS = 'This book already exists in DB.'

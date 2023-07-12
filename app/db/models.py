@@ -10,7 +10,6 @@ class Book(Base):
 
     Fields:
     id (int) = primary key.
-    path (str) = path to book(file name).
     name (str) = name of book.
     chapters = relationship with Chapter model.
     author_id = id of author in Author model.
@@ -19,8 +18,7 @@ class Book(Base):
     __tablename__ = 'books'
 
     id = Column(Integer, primary_key=True, index=True)
-    path = Column(String, unique=True, index=True)
-    name = Column(String, unique=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
     chapters = relationship('Chapter', back_populates='book')
     author_id = Column(Integer, ForeignKey('authors.id'))
     author = relationship('Author', back_populates='books')
@@ -39,7 +37,7 @@ class Author(Base):
     __tablename__ = 'authors'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
     books = relationship('Book', back_populates='author')
     books_count = column_property(select(func.count(Book.id))
                                   .where(Book.author_id == id)
@@ -62,8 +60,8 @@ class Chapter(Base):
     __tablename__ = 'chapters'
 
     id = Column(Integer, primary_key=True, index=True)
-    number = Column(Integer, unique=False)
-    name = Column(String, unique=False)
-    text = Column(Text)
+    number = Column(Integer, unique=False, nullable=False)
+    name = Column(String, unique=False, nullable=False)
+    text = Column(Text, nullable=False)
     book_id = Column(Integer, ForeignKey('books.id'))
     book = relationship('Book', back_populates='chapters')

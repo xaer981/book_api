@@ -1,4 +1,4 @@
-from book_handler.add_book import add_to_db, get_book_content
+from app.book_handler.add_book import add_to_db, get_book_content
 
 
 def add_new_book(file_name: str):

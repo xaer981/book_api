@@ -7,7 +7,7 @@ from .models import Author, Book, Chapter
 
 def get_author_list(db: Session):
     """
-    Getting paginated list of all authors in DB with.
+    Getting paginated list of all authors in DB ordered by id.
 
     Args:
         db (Session): database session.
@@ -36,7 +36,7 @@ def get_author(db: Session, author_id: int):
 
 def get_book_list(db: Session):
     """
-    Getting paginated list of all books in DB.
+    Getting paginated list of all books in DB ordered by id.
 
     Args:
         db (Session): database session.
@@ -64,14 +64,15 @@ def get_book(db: Session, book_id: int):
 
 
 def book_exists(db: Session, book_id: int):
-    """Checks if book with ID exists in DB.
+    """
+    Checks if book with id exists in DB.
 
     Args:
         db (Session): database session.
         book_id (int): id of book in db.
 
     Returns:
-        int: count of books(0 = doesn't exist, 1 = exists).
+        int: count of books(0 = doesn't exist, > 1 = exists).
     """
 
     return db.query(Book).where(Book.id == book_id).count()
@@ -84,7 +85,7 @@ def get_chapter_text(db: Session, book_id: int, chapter_number: int):
     Args:
         db (Session): database session.
         book_id (int): id of book in db.
-        chapter_number (int): number of chapter in db.
+        chapter_number (int): chapter.number in db.
 
     Returns:
         tuple: contains one object (text of chapter).
@@ -96,7 +97,8 @@ def get_chapter_text(db: Session, book_id: int, chapter_number: int):
 
 
 def search_in_book(db: Session, book_id: int, query: str):
-    """Searching in book by query. Using tsquery and headline.
+    """
+    Searching in book by query. Using tsquery and headline.
 
     Args:
         db (Session): database session.
@@ -111,7 +113,6 @@ def search_in_book(db: Session, book_id: int, query: str):
     results = db.execute(select(Chapter.number, Chapter.text)
                          .where(Chapter.book_id == book_id)
                          .filter(Chapter.text.op('@@')(query_func))).all()
-    final = []
     if results:
         results = [(c[0],
                     str(
@@ -125,8 +126,7 @@ def search_in_book(db: Session, book_id: int, query: str):
                         'StopSel=">>"'))
                     .first()).strip("(',)"))
                    for c in results]
-        for result in results:
-            final.append({'chapter_number': result[0],
-                          'result': result[1].replace('\\n', '')})
 
-    return final
+    return [{'chapter_number': result[0],
+             'result': result[1].replace('\\n', '')}
+            for result in results]

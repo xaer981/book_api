@@ -7,6 +7,16 @@ load_dotenv()
 
 
 def encode_credentials(credentials: bytes):
+    """
+    Encoding credentials to base64
+    for using in basic auth(e.g. in postman).
+
+    Args:
+        credentials (bytes): credentials (username password).
+
+    Prints:
+        Encoded credentials.
+    """
 
     return base64.b64encode(credentials)
 

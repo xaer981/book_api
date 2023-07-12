@@ -2,7 +2,9 @@ from pydantic import BaseModel
 
 
 class Author(BaseModel):
-    """Schema of Author for using in other schemas."""
+    """
+    Schema of Author for using in other schemas.
+    """
     id: int
     name: str
 
@@ -11,7 +13,9 @@ class Author(BaseModel):
 
 
 class BookBase(BaseModel):
-    """Schema of Book for using in other schemas."""
+    """
+    Schema of Book for using in other schemas.
+    """
     id: int
     name: str
 
@@ -20,7 +24,9 @@ class BookBase(BaseModel):
 
 
 class Book(BookBase):
-    """Schema of Book for using in /books/ endpoint."""
+    """
+    Schema of Book for using in /books/ endpoint.
+    """
     author: Author
 
     class Config:
@@ -28,7 +34,9 @@ class Book(BookBase):
 
 
 class Chapter(BaseModel):
-    """Schema of Chapter for using in other schemas."""
+    """
+    Schema of Chapter for using in other schemas.
+    """
     number: int
     name: str
 
@@ -37,7 +45,9 @@ class Chapter(BaseModel):
 
 
 class BookChapters(Book):
-    """Schema of Book for using in /books/{book_id} endpoint."""
+    """
+    Schema of Book for using in /books/{book_id} endpoint.
+    """
     chapters: list[Chapter]
 
     class Config:
@@ -45,7 +55,9 @@ class BookChapters(Book):
 
 
 class AuthorInfo(Author):
-    """Schema of Author for using in /authors/ endpoint."""
+    """
+    Schema of Author for using in /authors/ endpoint.
+    """
     books_count: int
 
     class Config:
@@ -53,7 +65,9 @@ class AuthorInfo(Author):
 
 
 class AuthorBooks(Author):
-    """Schema of Author for using in /authors/{author_id} endpoint."""
+    """
+    Schema of Author for using in /authors/{author_id} endpoint.
+    """
     books: list[BookBase]
 
     class Config:
@@ -69,5 +83,7 @@ class SearchResults(BaseModel):
 
 
 class Message(BaseModel):
-    """Schema for displaing error messages in docs."""
+    """
+    Schema for displaing error messages in docs.
+    """
     detail: str

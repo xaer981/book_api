@@ -1,0 +1,44 @@
+version: '3.3'
+services:
+
+  db:
+    container_name: book_api-db
+    image: postgres:13.0-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=baby_info
+    env_file:
+      - ../.env
+
+  redis:
+    container_name: book_api-redis
+    image: redis:6.0.20-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/var/lib/redis/data/
+    env_file:
+      - ../.env
+  
+  backend:
+    container_name: book_api-backend
+    image: xaer981/book_api:v1.0
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ../.env
+
+
+volumes:
+  postgres_data:
+  redis_data:

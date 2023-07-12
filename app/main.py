@@ -4,7 +4,6 @@ from typing import Annotated
 
 import aiofiles
 import redis.asyncio as redis
-import uvicorn
 from dotenv import load_dotenv
 from fastapi import (Body, Depends, FastAPI, HTTPException, Path, UploadFile,
                      status)
@@ -13,19 +12,20 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from fastapi_pagination import add_pagination
-from new_book import add_new_book
-from schemas import AuthorBooks, AuthorInfo, Book, BookChapters, SearchResults
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
 
-from auth_admin import check_admin
-from db import crud, models
-from book_handler.utils import CustomPage
-from core.cache import CustomORJsonCoder, custom_key_builder
-from core.constants import (BAD_FILE_FORMAT, BOOK_ALREADY_EXISTS,
-                            NOT_FOUND_AUTHOR_ID, NOT_FOUND_BOOK_ID,
-                            NOT_FOUND_CHAPTER_NUMBER, RESPONSES)
-from db.database import SessionLocal, engine
+from app.db import crud, models
+from app.book_handler.utils import CustomPage
+from app.core.cache import CustomORJsonCoder, custom_key_builder
+from app.core.constants import (BAD_FILE_FORMAT, BOOK_ALREADY_EXISTS,
+                                NOT_FOUND_AUTHOR_ID, NOT_FOUND_BOOK_ID,
+                                NOT_FOUND_CHAPTER_NUMBER, RESPONSES)
+from app.db.database import SessionLocal, engine
+from app.auth_admin import check_admin
+from app.new_book import add_new_book
+from app.schemas import (AuthorBooks, AuthorInfo, Book,
+                         BookChapters, SearchResults)
 
 load_dotenv()
 
@@ -55,6 +55,11 @@ app = FastAPI(lifespan=lifespan)
 
 
 def get_db():
+    """
+    Connects to DB. Closes connection in final.
+
+    Yields: db.
+    """
     db = SessionLocal()
     try:
         yield db
@@ -105,8 +110,6 @@ async def book_add(book: UploadFile):
 
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=BAD_FILE_FORMAT)
-    if book.filename in os.listdir('book'):
-        book.filename += '(2)'
 
     async with aiofiles.open(f'book/{book.filename}', 'wb') as out_file:
         content = await book.read()
@@ -182,7 +185,3 @@ async def book_search(book_id: Annotated[int, Path(ge=0)],
                             detail=NOT_FOUND_BOOK_ID.format(book_id=book_id))
 
     return crud.search_in_book(db, book_id, query)
-
-
-if __name__ == '__main__':
-    uvicorn.run('main:app', reload=False)

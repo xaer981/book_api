@@ -6,11 +6,11 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 from sqlalchemy import exc, exists, insert, select
 
-from db.database import SessionLocal
-from db.models import Author, Book, Chapter
+from app.db.database import SessionLocal
+from app.db.models import Author, Book, Chapter
 
 
-def get_book_content(book_name: str):
+def get_book_content(book_name: str) -> tuple[dict, dict, tuple]:
     """
     Getting book name, author, chapters list from book by file name.
 
@@ -18,10 +18,10 @@ def get_book_content(book_name: str):
         book_name (str): book_name in dir with files.
 
     Returns:
-        book_obj (dict): contains book name and path (file name).
+        book_obj (dict): contains book name.
         author_obj (dict): contains name of author.
-        chapters_obj (dict): contains number of chapter,
-                             name, path to chapter (href in xhtml).
+        chapters_obj (tuple): contains number of chapter,
+                              name, text of chapter.
     """
     try:
         book = epub.read_epub(f'book/{book_name}',
@@ -30,8 +30,7 @@ def get_book_content(book_name: str):
 
         return f'Файл не найден!\n Ошибка: {e}'
 
-    book_obj = {'name': book.get_metadata('DC', 'title')[0][0],
-                'path': book_name}
+    book_obj = {'name': book.get_metadata('DC', 'title')[0][0]}
     author_obj = {'name': book.get_metadata('DC', 'creator')[0][0]}
     navs = list(book.get_items_of_type(ebooklib.ITEM_NAVIGATION))
     decoded_nav = navs[0].get_content().decode('utf-8')
@@ -61,15 +60,15 @@ def get_book_content(book_name: str):
     return book_obj, author_obj, chapters_obj
 
 
-def add_to_db(book_obj, author_obj, chapters_obj):
+def add_to_db(book_obj: dict, author_obj: dict, chapters_obj: tuple):
     """
     Adding files to DB.
 
     Args:
-        book_obj (dict): contains book name and path (file name).
+        book_obj (dict): contains book name.
         author_obj (dict): contains name of author.
-        chapters_obj (dict): contains number of chapter,
-                             name, path to chapter (href in xhtml).
+        chapters_obj (tuple): contains number of chapter,
+                              name, text of chapter.
 
     Returns:
         str: 'Success'
