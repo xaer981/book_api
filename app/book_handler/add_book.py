@@ -28,7 +28,7 @@ def get_book_content(book_name: str) -> tuple[dict, dict, tuple]:
                               options={'ignore_ncx': True})
     except FileNotFoundError as e:
 
-        return f'Файл не найден!\n Ошибка: {e}'
+        return f'File not found!\n Error: {e}'
 
     book_obj = {'name': book.get_metadata('DC', 'title')[0][0]}
     author_obj = {'name': book.get_metadata('DC', 'creator')[0][0]}
