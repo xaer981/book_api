@@ -113,20 +113,22 @@ def search_in_book(db: Session, book_id: int, query: str):
     results = db.execute(select(Chapter.number, Chapter.text)
                          .where(Chapter.book_id == book_id)
                          .filter(Chapter.text.op('@@')(query_func))).all()
+    final = []
     if results:
-        results = [(c[0],
-                    str(
-                    db.query(func.ts_headline(
-                        'russian',
-                        c[1],
-                        query_func,
-                        'MaxFragments=2, '
-                        'MaxWords=20, '
-                        'StartSel="<<", '
-                        'StopSel=">>"'))
-                    .first()).strip("(',)"))
-                   for c in results]
+        res = [(c[0],
+                str(
+                db.query(func.ts_headline(
+                    'russian',
+                    c[1],
+                    query_func,
+                    'MaxFragments=2, '
+                    'MaxWords=20, '
+                    'StartSel="<<", '
+                    'StopSel=">>"'))
+                .first()).strip("(',)"))
+               for c in results]
+        final = [{'chapter_number': result[0],
+                  'result': result[1].replace('\\n', '')}
+                 for result in res]
 
-    return [{'chapter_number': result[0],
-             'result': result[1].replace('\\n', '')}
-            for result in results]
+    return final

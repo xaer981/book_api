@@ -51,6 +51,7 @@ async def lifespan(app: FastAPI):
 
     await r.flushall()
 
+
 app = FastAPI(lifespan=lifespan)
 
 
