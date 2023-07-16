@@ -7,10 +7,14 @@ Project using:
 * ![Static Badge](https://img.shields.io/badge/Pydantic-green)
 * ![Static Badge](https://img.shields.io/badge/SQLAlchemy-green)
 * ![Static Badge](https://img.shields.io/badge/PostgreSQL-green)
-* ![Static Badge](https://img.shields.io/badge/Redis-green) with ![Static Badge](https://img.shields.io/badge/FastAPI_cache-blue?link=https%3A%2F%2Fgithub.com%2Flong2ice%2Ffastapi-cache)
 * ![Static Badge](https://img.shields.io/badge/Docker-green)
-* ![Static Badge](https://img.shields.io/badge/FastAPI_pagination-blue?link=https%3A%2F%2Fgithub.com%2Furiyyo%2Ffastapi-pagination)
-* ![Static Badge](https://img.shields.io/badge/ebooklib-blue?link=https%3A%2F%2Fgithub.com%2Faerkalov%2Febooklib)
+* ![Static Badge](https://img.shields.io/badge/Redis-green) ![Static Badge](https://img.shields.io/badge/%2B-orange)
+ ![Static Badge](https://img.shields.io/badge/FastAPI_cache-blue?link=https%3A%2F%2Fgithub.com%2Flong2ice%2Ffastapi-cache) ![Static Badge](https://img.shields.io/badge/by-orange)
+ [@long2ice](https://github.com/long2ice)
+* ![Static Badge](https://img.shields.io/badge/FastAPI_pagination-blue?link=https%3A%2F%2Fgithub.com%2Furiyyo%2Ffastapi-pagination) ![Static Badge](https://img.shields.io/badge/by-orange)
+ [@uriyyo](https://github.com/uriyyo)
+* ![Static Badge](https://img.shields.io/badge/ebooklib-blue?link=https%3A%2F%2Fgithub.com%2Faerkalov%2Febooklib) ![Static Badge](https://img.shields.io/badge/by-orange)
+ [@aerkalov](https://github.com/aerkalov)
 
 ## Installation guide
 1. Clone current repo: ```git clone https://github.com/xaer981/book_api.git```
