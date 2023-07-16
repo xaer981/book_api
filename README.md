@@ -32,33 +32,33 @@ Project using:
 ## Usage
 1. ### Adding book via ```localhost:8000/docs/```.
    * **Click "Authorize"**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/cdac8e85-0715-4304-92c7-8558c058a8eb)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/ebe23266-76c8-4be3-93f8-fc14ab02a725)
    * **Use credentials from your .env file and "Authorize" again**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/476dfd21-3d6a-4514-840d-14093b559428)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/9f6c8fe2-7ff3-4f44-abd9-3582bd769678)
    * **Click "Try it out" in "POST /books/"**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/6f2dc25f-2197-4d7b-8594-4d3f0ef4976c)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/b00d39ef-d054-4a8d-9b01-da466e4c31e5)
    * **Choose your .epub file and "Execute"**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/c00d43fd-dc8f-49a5-a23e-1f9b5dcccf48)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/7116f6c2-874d-404c-b125-49f99cb5c733)
    * **Success! You just added a new book.**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/c8e4e1f9-85b7-4ef2-9084-4ce9476c817d)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/7263810c-8945-4db0-824e-59e688867f69)
 
 2. ### Enpoints.
    * **Get all books -> ```GET /books/```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/747f18de-cb0f-4a7d-9766-6d7fa0f5dc0c)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/9c555fc8-f720-4521-9033-6fcd530ee82b)
    * **Get books with pagination -> ```GET /books/?size={desired size}&page={desired page}```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/36747bab-8f22-4c05-a76f-8d23f9351e35)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/77f32fac-33e3-4e91-b740-77d88252665f)
    * **Get chapters of book -> ```GET /books/{book_id}/```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/ed7c5f06-9803-456d-b09f-7f67b0b86bd6)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/7c1df11e-935c-43ee-826c-6cfaa72a4973)
    * **Get text of chapter -> ```GET /books/{book_id}/chapter/{chapter_number}/```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/dae99659-c0f7-4bb8-a485-2f49998770d7)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/3e8159ad-7451-49bc-b60e-7a4193cb3883)
    * **Search chapters in book containing query -> ```GET /books/{book_id}/search/``` + ```body = {"query": "your query"}```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/1111831a-db76-4d72-8b89-2956f349d86c)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/177f08d7-c717-472a-be46-3d3d3da5876b)
    * **Get all authors -> ```GET /authors/```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/529ec5bb-5803-4b66-9bf6-0395498efa64)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/29d0e66f-4849-44c5-80bd-47dfb7b83840)
    * **Get authors with pagination -> ```GET /authors/?size={desired size}&page={desired page}```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/5d1370ab-74e3-448b-8827-729d529e0053)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/23fdde54-fa83-48ce-b9e9-888b8b52cfda)
    * **Get books of author -> ```GET /authors/{author_id}/```**
-     ![image](https://github.com/xaer981/book_api/assets/99489753/9e4b5ba4-2001-4df4-830f-dacfb9d8c405)
+     ![image](https://github.com/xaer981/book_api/assets/99489753/2114473f-6a44-4cde-9cb8-c71b9caa6812)
 
 
 ## Technical details
