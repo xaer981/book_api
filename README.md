@@ -3,14 +3,14 @@ This project allow to add .epub books (they will be handled and added to DB (boo
 
 ## Quick overview
 Project using:
-* FastAPI
-* Pydantic
-* SQLAlchemy
-* PostgreSQL as DB
-* Redis as cache (with [fastapi-cache](https://github.com/long2ice/fastapi-cache) by [long2ice](https://github.com/long2ice))
-* Pagination system ([fastapi-pagination](https://github.com/uriyyo/fastapi-pagination) by [uriyyo](https://github.com/uriyyo))
-* Managing .epub books lib ([ebooklib](https://github.com/aerkalov/ebooklib) by [aerkalov](https://github.com/aerkalov))
-* Docker + docker-compose
+* ![Static Badge](https://img.shields.io/badge/FastAPI-green)
+* ![Static Badge](https://img.shields.io/badge/Pydantic-green)
+* ![Static Badge](https://img.shields.io/badge/SQLAlchemy-green)
+* ![Static Badge](https://img.shields.io/badge/PostgreSQL-green)
+* ![Static Badge](https://img.shields.io/badge/Redis-green) with ![Static Badge](https://img.shields.io/badge/FastAPI_cache-blue?link=https%3A%2F%2Fgithub.com%2Flong2ice%2Ffastapi-cache)
+* ![Static Badge](https://img.shields.io/badge/Docker-green)
+* ![Static Badge](https://img.shields.io/badge/FastAPI_pagination-blue?link=https%3A%2F%2Fgithub.com%2Furiyyo%2Ffastapi-pagination)
+* ![Static Badge](https://img.shields.io/badge/ebooklib-blue?link=https%3A%2F%2Fgithub.com%2Faerkalov%2Febooklib)
 
 ## Installation guide
 1. Clone current repo: ```git clone https://github.com/xaer981/book_api.git```
