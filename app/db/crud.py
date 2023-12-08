@@ -93,7 +93,7 @@ def get_chapter_text(db: Session, book_id: int, chapter_number: int):
 
     return db.execute(select(Chapter.text)
                       .where(Chapter.book_id == book_id,
-                             Chapter.number == chapter_number)).first()
+                             Chapter.number == chapter_number)).scalar()
 
 
 def search_in_book(db: Session, book_id: int, query: str):

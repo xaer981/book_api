@@ -24,8 +24,10 @@ services:
       - ../.env
   
   backend:
+    build:
+      context: ../
+      dockerfile: Dockerfile
     container_name: book_api-backend
-    image: xaer981/book_api:v1.0
     restart: always
     ports:
       - "8000:8000"

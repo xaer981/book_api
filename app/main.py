@@ -5,7 +5,7 @@ from typing import Annotated
 import aiofiles
 import redis.asyncio as redis
 from dotenv import load_dotenv
-from fastapi import (Body, Depends, FastAPI, HTTPException, Path, UploadFile,
+from fastapi import (Depends, FastAPI, HTTPException, Path, Query, UploadFile,
                      status)
 from fastapi.responses import PlainTextResponse
 from fastapi_cache import FastAPICache
@@ -15,17 +15,17 @@ from fastapi_pagination import add_pagination
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
 
-from app.db import crud, models
+from app.auth_admin import check_admin
 from app.book_handler.utils import CustomPage
 from app.core.cache import CustomORJsonCoder, custom_key_builder
 from app.core.constants import (BAD_FILE_FORMAT, BOOK_ALREADY_EXISTS,
                                 NOT_FOUND_AUTHOR_ID, NOT_FOUND_BOOK_ID,
                                 NOT_FOUND_CHAPTER_NUMBER, RESPONSES)
-from app.db.database import SessionLocal, engine
-from app.auth_admin import check_admin
+from app.db import crud, models
+from app.db.database import engine, get_db
 from app.new_book import add_new_book
-from app.schemas import (AuthorBooks, AuthorInfo, Book,
-                         BookChapters, SearchResults)
+from app.schemas import (AuthorBooks, AuthorInfo, Book, BookChapters,
+                         SearchResults)
 
 load_dotenv()
 
@@ -39,7 +39,8 @@ async def lifespan(app: FastAPI):
     Flushing all in redis on shutdown.
     """
     add_pagination(app)
-    pool = redis.ConnectionPool.from_url(os.getenv('REDIS_URL'),
+    pool = redis.ConnectionPool.from_url(os.getenv('REDIS_URL',
+                                                   'redis://book_api-redis'),
                                          encoding='utf-8',
                                          decode_responses=True)
     r = redis.Redis(connection_pool=pool)
@@ -52,25 +53,13 @@ async def lifespan(app: FastAPI):
     await r.flushall()
 
 
-app = FastAPI(lifespan=lifespan)
-
-
-def get_db():
-    """
-    Connects to DB. Closes connection in final.
-
-    Yields: db.
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+app = FastAPI(lifespan=lifespan, title='book_api')
 
 
 @app.get('/authors/',
          response_model=CustomPage[AuthorInfo],
-         description='Full list of authors in DB with pagination.')
+         description='Full list of authors in DB with pagination.',
+         tags=['Authors'])
 @cache()
 async def author_list(db: Session = Depends(get_db)):
 
@@ -80,6 +69,7 @@ async def author_list(db: Session = Depends(get_db)):
 @app.get('/authors/{author_id}',
          response_model=AuthorBooks,
          description='Author by ID.',
+         tags=['Authors'],
          responses={**RESPONSES})
 @cache(coder=CustomORJsonCoder(response_model=AuthorBooks))
 async def author_get(author_id: Annotated[int, Path(ge=0)],
@@ -96,7 +86,8 @@ async def author_get(author_id: Annotated[int, Path(ge=0)],
 
 @app.get('/books/',
          response_model=CustomPage[Book],
-         description='Full list of books in DB with pagination.')
+         description='Full list of books in DB with pagination.',
+         tags=['Books'])
 @cache()
 async def book_list(db: Session = Depends(get_db)):
 
@@ -105,7 +96,8 @@ async def book_list(db: Session = Depends(get_db)):
 
 @app.post('/books/',
           dependencies=[Depends(check_admin)],
-          description='Add .epub book to DB (only for admin).')
+          description='Add .epub book to DB (only for admin).',
+          tags=['Books'])
 async def book_add(book: UploadFile):
     if book.content_type != 'application/epub+zip':
 
@@ -135,6 +127,7 @@ async def book_add(book: UploadFile):
 @app.get('/books/{book_id}',
          response_model=BookChapters,
          description='Book by ID.',
+         tags=['Books'],
          responses={**RESPONSES})
 @cache(coder=CustomORJsonCoder(response_model=BookChapters))
 async def book_get(book_id: Annotated[int, Path(ge=0)],
@@ -151,6 +144,7 @@ async def book_get(book_id: Annotated[int, Path(ge=0)],
 @app.get('/books/{book_id}/chapter/{chapter_number}',
          response_class=PlainTextResponse,
          description='Chapter text by book_id and chapter_number.',
+         tags=['Books'],
          responses={**RESPONSES,
                     200: {'content': {'text/plain': {}},
                           'description': 'Returns text of chapter.'}})
@@ -170,16 +164,17 @@ async def chapter_get(book_id: Annotated[int, Path(ge=0)],
                                 chapter_number=chapter_number,
                                 book_id=book_id))
 
-    return chapter[0]
+    return chapter
 
 
 @app.get('/books/{book_id}/search/',
          response_model=list[SearchResults],
          description='Search query in book by ID.',
+         tags=['Books'],
          responses={**RESPONSES})
 @cache()
 async def book_search(book_id: Annotated[int, Path(ge=0)],
-                      query: Annotated[str, Body(embed=True, min_length=3)],
+                      query: Annotated[str, Query(min_length=3)],
                       db: Session = Depends(get_db)):
     if not crud.book_exists(db, book_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
